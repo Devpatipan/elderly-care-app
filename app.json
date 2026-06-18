@@ -1,0 +1,34 @@
+{
+  "expo": {
+    "name": "ดูแลผู้สูงอายุ",
+    "slug": "elderly-care-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
+    "splash": {
+      "backgroundColor": "#0EA5A4",
+      "resizeMode": "contain"
+    },
+    "backgroundColor": "#0EA5A4",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "com.anonymous.elderlycareapp"
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-font"
+    ]
+  }
+}
