@@ -8,15 +8,20 @@ import { useApp } from '../store';
 
 // หน้าเลือก/สลับผู้ป่วย (รองรับหลายคน — เอกสาร 1.4 ข้อ 1.3)
 export default function PatientListScreen() {
-  const { patients, activePatientId, selectPatient, navigate, goBack } = useApp();
+  const { patients, activePatientId, selectPatient, navigate, goBack, reset, route } = useApp();
+
+  // entry = true เมื่อเข้ามาจากหน้า Login (เป็นหน้าแรก ยังไม่มีผู้ป่วยที่ 'ยืนยัน' เลือก)
+  const isEntry = route && route.params && route.params.entry;
 
   const choose = (id) => {
     selectPatient(id);
-    goBack();
+    // ถ้ามาจากหน้า Login ให้เข้าหน้าหลัก (ล้าง history), ถ้ามาสลับจากใน Home ให้ย้อนกลับตามเดิม
+    if (isEntry) reset('Home');
+    else goBack();
   };
 
   return (
-    <Screen title="เลือกผู้ป่วย">
+    <Screen title="เลือกผู้ป่วย" showBack={!isEntry} showTabs={!isEntry}>
       {patients.length === 0 ? (
         <Card><Text style={styles.empty}>ยังไม่มีผู้ป่วย — กดเพิ่มด้านล่าง</Text></Card>
       ) : (

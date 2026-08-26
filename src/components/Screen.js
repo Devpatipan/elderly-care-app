@@ -15,7 +15,7 @@ import { FadeIn } from './ui';
 import { useApp } from '../store';
 
 // Shared page chrome: rounded teal header + floating bottom tab bar.
-export default function Screen({ title, children, showBack = true }) {
+export default function Screen({ title, children, showBack = true, showTabs = true }) {
   const { goBack, navigate, route, reloadAll } = useApp();
   const [refreshing, setRefreshing] = React.useState(false);
 
@@ -57,11 +57,13 @@ export default function Screen({ title, children, showBack = true }) {
         <View style={{ height: 28 }} />
       </ScrollView>
 
-      <View style={styles.tabbar}>
-        <Tab icon="home-variant" label="หน้าหลัก" active={route.name === 'Home'} onPress={() => navigate('Home')} />
-        <Tab icon="account" label="ข้อมูล" active={route.name === 'PatientInfo'} onPress={() => navigate('PatientInfo')} />
-        <Tab icon="phone" label="SOS" danger active={route.name === 'SOS'} onPress={() => navigate('SOS')} />
-      </View>
+      {showTabs && (
+        <View style={styles.tabbar}>
+          <Tab icon="home-variant" label="หน้าหลัก" active={route.name === 'Home'} onPress={() => navigate('Home')} />
+          <Tab icon="account" label="ข้อมูล" active={route.name === 'PatientInfo'} onPress={() => navigate('PatientInfo')} />
+          <Tab icon="phone" label="SOS" danger active={route.name === 'SOS'} onPress={() => navigate('SOS')} />
+        </View>
+      )}
     </SafeAreaView>
   );
 }

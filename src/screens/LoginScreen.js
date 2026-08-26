@@ -21,7 +21,7 @@ export default function LoginScreen() {
 
   const login = () => {
     setUser({ email: email || 'caregiver@demo.app' });
-    reset('Home');
+    reset('PatientList', { entry: true });
   };
 
   return (
