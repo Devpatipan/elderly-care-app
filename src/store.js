@@ -69,6 +69,15 @@ export function AppProvider({ children }) {
       const has = (id) => id && list.some((p) => p.id === id);
       const activeId = has(preferredId) ? preferredId : (has(activeRef.current) ? activeRef.current : (list[0] ? list[0].id : null));
 
+      // ยังไม่มีผู้ป่วยเลย — ข้ามการ query ตารางย่อย (กัน eq patient_id=null ทำให้ uuid พัง)
+      if (!activeId) {
+        setPatients(list);
+        setActivePatientId(null);
+        activeRef.current = null;
+        setData({ ...EMPTY, caregiver: (cgs.data && cgs.data[0]) || null });
+        return;
+      }
+
       // 3) โหลดข้อมูลย่อยเฉพาะของผู้ป่วยคนนั้น
       const [meds, logs, notis, appts, bp, sugar, hr, contacts] = await Promise.all([
         supabase.from('medication_records').select('*').eq('patient_id', activeId).order('created_at'),

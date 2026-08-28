@@ -7,22 +7,66 @@ import {
   SafeAreaView,
   StyleSheet,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors, sizes, shadow } from '../theme';
 import { useApp } from '../store';
+import { supabase } from '../supabase';
 import Logo from '../components/Logo';
 
-// หน้าสมัครสมาชิก / เข้าสู่ระบบ (ภาพที่ 6) — การยืนยันตัวตนเป็นแบบจำลอง
+// หน้าเข้าสู่ระบบ / สมัครสมาชิก — ยืนยันตัวตนจริงกับฐานข้อมูล (RPC + bcrypt)
 export default function LoginScreen() {
-  const { reset, setUser } = useApp();
+  const { reset, setUser, showToast } = useApp();
+  const [mode, setMode] = useState('login'); // 'login' | 'register'
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const login = () => {
-    setUser({ email: email || 'caregiver@demo.app' });
-    reset('PatientList', { entry: true });
+  const isRegister = mode === 'register';
+
+  const submit = async () => {
+    const mail = email.trim().toLowerCase();
+    if (!mail || !password) return showToast('กรุณากรอกอีเมลและรหัสผ่าน', 'warning');
+    if (isRegister && password.length < 6) return showToast('รหัสผ่านอย่างน้อย 6 ตัวอักษร', 'warning');
+
+    setLoading(true);
+    try {
+      if (isRegister) {
+        const { data, error } = await supabase.rpc('register_user', {
+          p_email: mail,
+          p_password: password,
+          p_name: name.trim() || null,
+        });
+        if (error) throw error;
+        const u = data && data[0];
+        setUser({ id: u.id, email: u.email, name: u.name });
+        showToast('สมัครสมาชิกสำเร็จ', 'success');
+        reset('PatientList', { entry: true });
+      } else {
+        const { data, error } = await supabase.rpc('login_user', {
+          p_email: mail,
+          p_password: password,
+        });
+        if (error) throw error;
+        const u = data && data[0];
+        if (!u) return showToast('อีเมลหรือรหัสผ่านไม่ถูกต้อง', 'danger');
+        setUser({ id: u.id, email: u.email, name: u.name });
+        reset('PatientList', { entry: true });
+      }
+    } catch (e) {
+      showToast(
+        (isRegister ? 'สมัครไม่สำเร็จ: ' : 'เข้าสู่ระบบไม่สำเร็จ: ') + (e.message || String(e)),
+        'danger'
+      );
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const googleUnsupported = () =>
+    showToast('ยังไม่รองรับการเข้าสู่ระบบด้วย Google', 'warning');
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -37,7 +81,7 @@ export default function LoginScreen() {
 
       {/* white card */}
       <View style={styles.sheet}>
-        <TouchableOpacity style={styles.googleBtn} onPress={login} activeOpacity={0.85}>
+        <TouchableOpacity style={styles.googleBtn} onPress={googleUnsupported} activeOpacity={0.85}>
           <MaterialCommunityIcons name="google" size={22} color="#4285F4" style={{ marginRight: 10 }} />
           <Text style={styles.googleText}>เข้าสู่ระบบด้วย Google</Text>
         </TouchableOpacity>
@@ -46,6 +90,15 @@ export default function LoginScreen() {
           <View style={styles.line} /><Text style={styles.or}>หรือ</Text><View style={styles.line} />
         </View>
 
+        {isRegister && (
+          <TextInput
+            style={styles.input}
+            placeholder="ชื่อ-นามสกุล"
+            placeholderTextColor={colors.textMuted}
+            value={name}
+            onChangeText={setName}
+          />
+        )}
         <TextInput
           style={styles.input}
           placeholder="อีเมล"
@@ -64,11 +117,25 @@ export default function LoginScreen() {
           secureTextEntry
         />
 
-        <TouchableOpacity style={styles.primaryBtn} onPress={login} activeOpacity={0.85}>
-          <Text style={styles.primaryText}>เข้าสู่ระบบ / สร้างบัญชี</Text>
+        <TouchableOpacity
+          style={[styles.primaryBtn, loading && { opacity: 0.6 }]}
+          onPress={submit}
+          activeOpacity={0.85}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color={colors.white} />
+          ) : (
+            <Text style={styles.primaryText}>{isRegister ? 'สมัครสมาชิก' : 'เข้าสู่ระบบ'}</Text>
+          )}
         </TouchableOpacity>
 
-        <Text style={styles.hint}>ต้นแบบสาธิต — กดปุ่มใดก็เข้าใช้งานได้ทันที</Text>
+        <TouchableOpacity onPress={() => setMode(isRegister ? 'login' : 'register')} activeOpacity={0.7}>
+          <Text style={styles.hint}>
+            {isRegister ? 'มีบัญชีอยู่แล้ว? ' : 'ยังไม่มีบัญชี? '}
+            <Text style={styles.link}>{isRegister ? 'เข้าสู่ระบบ' : 'สมัครสมาชิก'}</Text>
+          </Text>
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
@@ -100,7 +167,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     backgroundColor: colors.white, borderRadius: 999, paddingVertical: 16, ...shadow.soft,
   },
-  googleG: { fontSize: 20, fontWeight: '900', color: '#4285F4', marginRight: 10 },
   googleText: { fontSize: sizes.body, fontWeight: '700', color: colors.text },
 
   orRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 18 },
@@ -114,8 +180,9 @@ const styles = StyleSheet.create({
   },
   primaryBtn: {
     backgroundColor: colors.primary, borderRadius: sizes.radiusSm, paddingVertical: 17,
-    alignItems: 'center', marginTop: 4, ...shadow.soft,
+    alignItems: 'center', marginTop: 4, minHeight: 56, justifyContent: 'center', ...shadow.soft,
   },
   primaryText: { color: colors.white, fontSize: sizes.body, fontWeight: '800' },
-  hint: { textAlign: 'center', color: colors.textMuted, fontSize: sizes.tiny, marginTop: 18 },
+  hint: { textAlign: 'center', color: colors.textMuted, fontSize: sizes.small, marginTop: 18 },
+  link: { color: colors.primary, fontWeight: '800' },
 });

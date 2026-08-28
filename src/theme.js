@@ -1,23 +1,30 @@
-// Elderly-friendly "warm medical" theme: calm teal, soft surfaces, large type.
+// Modern "warm sage-teal" care theme — redesign 2026
+// โทนเขียวใบไม้เข้ม (deep sage-teal) อบอุ่น น่าเชื่อถือระดับการแพทย์
+// สีสถานะชัดตามหลัก WCAG AA — success/warning/danger
+import { Platform } from 'react-native';
+
 export const colors = {
-  primary: '#0EA5A4',       // teal
-  primaryDark: '#0F766E',
-  primarySoft: '#E6F7F6',
-  accent: '#FF7A59',        // warm coral highlight
-  accentSoft: '#FFE9E2',
+  primary: '#2F6F5E',        // deep sage-teal
+  primaryDark: '#1E4C40',
+  primarySoft: '#E6F2EC',    // primary tint
+  primaryTint2: '#CCE6DA',
+  accent: '#F2A65A',         // warm apricot
+  accentSoft: '#FBEBD8',
 
-  bg: '#F1F5F8',
+  bg: '#FAF9F5',             // warm off-white canvas
   card: '#FFFFFF',
-  text: '#13212E',
-  textMuted: '#64748B',
-  border: '#E6EBF1',
+  text: '#1B2A26',
+  textMuted: '#5C6E68',      // text secondary
+  textTertiary: '#93A29C',
+  border: '#E6EAE7',
 
-  danger: '#E11D48',
-  dangerSoft: '#FCE7EC',
-  warning: '#F59E0B',
-  warningSoft: '#FEF3E2',
-  success: '#16A34A',
-  successSoft: '#E4F7EC',
+  danger: '#D6473D',
+  dangerSoft: '#FBE7E5',
+  warning: '#D98F2B',
+  warningSoft: '#FCF0DC',
+  success: '#2F9E6E',
+  successSoft: '#E4F5EC',
+  info: '#3E7BC4',
 
   white: '#FFFFFF',
 };
@@ -29,20 +36,18 @@ export const sizes = {
   body: 18,
   small: 15,
   tiny: 13,
-  radius: 20,
+  radius: 22,
   radiusSm: 14,
 };
 
 // Cross-platform soft shadow presets
 // - เว็บ: ใช้ boxShadow (เลี่ยง warning "shadow* deprecated" ของ react-native-web)
 // - iOS: shadow* / Android: elevation
-import { Platform } from 'react-native';
-
 const makeShadow = (y, blur, alpha, elevation) =>
   Platform.OS === 'web'
-    ? { boxShadow: `0px ${y}px ${blur}px rgba(15,23,42,${alpha})` }
+    ? { boxShadow: `0px ${y}px ${blur}px rgba(27,42,38,${alpha})` }
     : {
-        shadowColor: '#0F172A',
+        shadowColor: '#1B2A26',
         shadowOpacity: alpha,
         shadowRadius: blur,
         shadowOffset: { width: 0, height: y },
@@ -50,8 +55,8 @@ const makeShadow = (y, blur, alpha, elevation) =>
       };
 
 export const shadow = {
-  card: makeShadow(6, 14, 0.08, 3),
-  soft: makeShadow(3, 8, 0.06, 2),
+  card: makeShadow(10, 22, 0.08, 3),
+  soft: makeShadow(4, 12, 0.05, 2),
 };
 
 // 8-point spacing grid

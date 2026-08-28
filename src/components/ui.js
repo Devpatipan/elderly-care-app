@@ -160,7 +160,7 @@ const styles = StyleSheet.create({
 
   bigBtn: {
     flexDirection: 'row',
-    borderRadius: sizes.radiusSm,
+    borderRadius: 16,
     paddingVertical: 16,
     alignItems: 'center',
     justifyContent: 'center',
@@ -171,14 +171,14 @@ const styles = StyleSheet.create({
   field: { marginBottom: 16 },
   fieldLabel: { fontSize: sizes.small, color: colors.textMuted, marginBottom: 8, fontWeight: '700' },
   input: {
-    borderWidth: 1.5,
+    borderWidth: 1.6,
     borderColor: colors.border,
     borderRadius: sizes.radiusSm,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: sizes.body,
     color: colors.text,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.card,
   },
 
   badge: {
@@ -192,5 +192,5 @@ const styles = StyleSheet.create({
   dot: { width: 8, height: 8, borderRadius: 4, marginRight: 6 },
   badgeText: { fontWeight: '800', fontSize: sizes.small },
 
-  track: { width: '100%', backgroundColor: '#E8EEF3', overflow: 'hidden' },
+  track: { width: '100%', backgroundColor: colors.primarySoft, overflow: 'hidden' },
 });

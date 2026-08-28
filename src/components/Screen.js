@@ -33,7 +33,7 @@ export default function Screen({ title, children, showBack = true, showTabs = tr
     <SafeAreaView style={styles.safe}>
       <View style={styles.header}>
         {showBack ? (
-          <TouchableOpacity onPress={goBack} style={styles.iconBtn} activeOpacity={0.7}>
+          <TouchableOpacity onPress={goBack} style={styles.backBtn} activeOpacity={0.7}>
             <Text style={styles.backArrow}>‹</Text>
           </TouchableOpacity>
         ) : (
@@ -95,22 +95,28 @@ function Tab({ icon, label, active, danger, onPress }) {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
   header: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.bg,
     paddingTop: Platform.OS === 'android' ? 38 : 14,
-    paddingBottom: 18,
-    paddingHorizontal: 8,
+    paddingBottom: 14,
+    paddingHorizontal: 14,
     flexDirection: 'row',
     alignItems: 'center',
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
+  },
+  iconBtn: { width: 44, height: 42, alignItems: 'center', justifyContent: 'center' },
+  backBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 13,
+    backgroundColor: colors.card,
+    alignItems: 'center',
+    justifyContent: 'center',
     ...shadow.soft,
   },
-  iconBtn: { width: 44, height: 38, alignItems: 'center', justifyContent: 'center' },
-  backArrow: { color: colors.white, fontSize: 40, lineHeight: 40, marginTop: -4 },
+  backArrow: { color: colors.text, fontSize: 34, lineHeight: 34, marginTop: -3 },
   headerTitle: {
     flex: 1,
     textAlign: 'center',
-    color: colors.white,
+    color: colors.text,
     fontSize: sizes.h2,
     fontWeight: '800',
   },
@@ -125,7 +131,7 @@ const styles = StyleSheet.create({
     paddingBottom: Platform.OS === 'ios' ? 24 : 10,
   },
   tab: { flex: 1, alignItems: 'center' },
-  tabPill: { paddingHorizontal: 18, paddingVertical: 4, borderRadius: 999 },
+  tabPill: { paddingHorizontal: 16, paddingVertical: 6, borderRadius: 14 },
   tabEmoji: { fontSize: 22 },
   tabLabel: { fontSize: 12, marginTop: 3 },
 });
