@@ -1,4 +1,5 @@
 import 'react-native-url-polyfill/auto';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
 
 // ค่าจากโปรเจกต์ Supabase (Project Settings > API)
@@ -9,7 +10,9 @@ const SUPABASE_ANON_KEY = 'sb_publishable_fvVDdeuxLbQ2IHfjkZ1deA_CPxjuRj8';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
-    persistSession: false,    // ยังไม่ทำ login จริง — ไม่ต้องเก็บ session
-    autoRefreshToken: false,
+    storage: AsyncStorage,
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: false,
   },
 });

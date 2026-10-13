@@ -6,6 +6,7 @@ import './src/fonts';
 import { AppProvider, useApp } from './src/store';
 import { ensurePermissions, attachSpeechListener } from './src/notifications';
 import BrandSplash from './src/components/BrandSplash';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import LoginScreen from './src/screens/LoginScreen';
 import HomeScreen from './src/screens/HomeScreen';
@@ -20,6 +21,8 @@ import SOSScreen from './src/screens/SOSScreen';
 import CaregiverScreen from './src/screens/CaregiverScreen';
 import ReportScreen from './src/screens/ReportScreen';
 import PatientListScreen from './src/screens/PatientListScreen';
+import CaregiverHomeScreen from './src/screens/CaregiverHomeScreen';
+import NotificationInboxScreen from './src/screens/NotificationInboxScreen';
 
 const SCREENS = {
   Login: LoginScreen,
@@ -35,6 +38,8 @@ const SCREENS = {
   Caregiver: CaregiverScreen,
   Report: ReportScreen,
   PatientList: PatientListScreen,
+  CaregiverHome: CaregiverHomeScreen,
+  NotificationInbox: NotificationInboxScreen,
 };
 
 function Router() {
@@ -63,9 +68,11 @@ export default function App() {
   }
 
   return (
-    <AppProvider>
-      <StatusBar style="light" />
-      <Router />
-    </AppProvider>
+    <SafeAreaProvider>
+      <AppProvider>
+        <StatusBar style="light" />
+        <Router />
+      </AppProvider>
+    </SafeAreaProvider>
   );
 }

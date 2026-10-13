@@ -8,14 +8,8 @@ import { useApp } from '../store';
 
 // หน้าข้อมูลผู้ป่วย (ภาพที่ 8): แสดงข้อมูลที่บันทึกไว้ + ปุ่มไปแก้ไข
 export default function PatientInfoScreen() {
-  const { data, navigate, reset, setUser, showToast } = useApp();
+  const { data, navigate } = useApp();
   const p = data.patient;
-
-  const logout = () => {
-    setUser(null);
-    reset('Login');
-    showToast('ออกจากระบบแล้ว', 'success');
-  };
 
   const rows = [
     ['อายุ', `${p.age} ปี`],
@@ -50,7 +44,6 @@ export default function PatientInfoScreen() {
       </Card>
 
       <BigButton label="แก้ไขข้อมูล" icon="pencil" onPress={() => navigate('AddPatient')} />
-      <BigButton label="ออกจากระบบ" icon="logout" light color={colors.danger} onPress={logout} />
     </Screen>
   );
 }

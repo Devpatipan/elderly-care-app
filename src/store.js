@@ -37,14 +37,35 @@ const dateTimeWall = (v) => {
   return `${d.getUTCFullYear()}-${pad2(d.getUTCMonth() + 1)}-${pad2(d.getUTCDate())} ${pad2(d.getUTCHours())}:${pad2(d.getUTCMinutes())}`;
 };
 
+const latestByPatient = (rows) =>
+  (rows || []).reduce((acc, row) => {
+    const prev = acc[row.patient_id];
+    if (!prev || new Date(row.created_at) >= new Date(prev.created_at)) acc[row.patient_id] = row;
+    return acc;
+  }, {});
+
+const authUserToAppUser = (authUser) => {
+  if (!authUser) return null;
+  const meta = authUser.user_metadata || {};
+  return {
+    id: authUser.id,
+    email: authUser.email,
+    name: meta.name || meta.full_name || authUser.email,
+    age: meta.age ?? null,
+    phone: meta.phone || null,
+  };
+};
+
 export function AppProvider({ children }) {
   const [route, setRoute] = useState({ name: 'Login', params: {} });
   const [history, setHistory] = useState([]);
   const [user, setUser] = useState(null);
   const [data, setData] = useState(EMPTY);
   const [patients, setPatients] = useState([]);           // รายชื่อผู้ป่วยทั้งหมด (R9)
+  const [patientSummaries, setPatientSummaries] = useState({});
   const [activePatientId, setActivePatientId] = useState(null);
   const activeRef = useRef(null);                          // เก็บ id ที่กำลังเลือกไว้อ่านใน loadAll
+  const userRef = useRef(null);                            // id ผู้ดูแลที่ล็อกอิน (owner ของผู้ป่วย)
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
 
@@ -56,13 +77,21 @@ export function AppProvider({ children }) {
   const loadAll = useCallback(async (preferredId) => {
     try {
       setLoading(true);
-      // 1) โหลดรายชื่อผู้ป่วยทั้งหมด + โปรไฟล์ผู้ดูแล
-      const [pts, cgs] = await Promise.all([
-        supabase.from('patients').select('*').order('created_at'),
-        supabase.from('caregivers').select('*').order('created_at').limit(1),
+      // ยังไม่ล็อกอิน (ไม่มีผู้ดูแล) — ไม่ต้องโหลดอะไร
+      const ownerId = userRef.current;
+      if (!ownerId) {
+        setPatients([]);
+        setPatientSummaries({});
+        setActivePatientId(null);
+        activeRef.current = null;
+        setData(EMPTY);
+        return;
+      }
+      // 1) โหลดผู้ป่วยเฉพาะของผู้ดูแลคนนี้
+      const [pts] = await Promise.all([
+        supabase.from('patients').select('*').eq('owner_id', ownerId).order('created_at'),
       ]);
       if (pts.error) throw pts.error;
-      if (cgs.error) throw cgs.error;
       const list = pts.data || [];
 
       // 2) เลือกผู้ป่วยที่จะแสดง (ใช้ที่ส่งมา > ที่เลือกไว้ > คนแรก)
@@ -72,14 +101,16 @@ export function AppProvider({ children }) {
       // ยังไม่มีผู้ป่วยเลย — ข้ามการ query ตารางย่อย (กัน eq patient_id=null ทำให้ uuid พัง)
       if (!activeId) {
         setPatients(list);
+        setPatientSummaries({});
         setActivePatientId(null);
         activeRef.current = null;
-        setData({ ...EMPTY, caregiver: (cgs.data && cgs.data[0]) || null });
+        setData(EMPTY);
         return;
       }
 
       // 3) โหลดข้อมูลย่อยเฉพาะของผู้ป่วยคนนั้น
-      const [meds, logs, notis, appts, bp, sugar, hr, contacts] = await Promise.all([
+      const ids = list.map((p) => p.id);
+      const [meds, logs, notis, appts, bp, sugar, hr, contacts, allBp, allSugar, allHr] = await Promise.all([
         supabase.from('medication_records').select('*').eq('patient_id', activeId).order('created_at'),
         supabase.from('medication_log').select('*').eq('patient_id', activeId).order('taken_at'),
         supabase.from('medication_notifications').select('*').eq('patient_id', activeId).order('time'),
@@ -88,16 +119,32 @@ export function AppProvider({ children }) {
         supabase.from('blood_sugar_logs').select('*').eq('patient_id', activeId).order('created_at'),
         supabase.from('heart_rate_logs').select('*').eq('patient_id', activeId).order('created_at'),
         supabase.from('emergency_contacts').select('*').eq('patient_id', activeId).order('created_at'),
+        supabase.from('blood_pressure_logs').select('*').in('patient_id', ids).order('created_at'),
+        supabase.from('blood_sugar_logs').select('*').in('patient_id', ids).order('created_at'),
+        supabase.from('heart_rate_logs').select('*').in('patient_id', ids).order('created_at'),
       ]);
-      const err = meds.error || logs.error || notis.error || appts.error || bp.error || sugar.error || hr.error || contacts.error;
+      const err = meds.error || logs.error || notis.error || appts.error || bp.error || sugar.error || hr.error || contacts.error || allBp.error || allSugar.error || allHr.error;
       if (err) throw err;
 
+      const latestBp = latestByPatient(allBp.data);
+      const latestSugar = latestByPatient(allSugar.data);
+      const latestHr = latestByPatient(allHr.data);
+      const summaries = Object.fromEntries(ids.map((id) => [
+        id,
+        {
+          bp: latestBp[id] ? { ...latestBp[id], created_at: day(latestBp[id].created_at) } : null,
+          sugar: latestSugar[id] ? { ...latestSugar[id], created_at: day(latestSugar[id].created_at) } : null,
+          hr: latestHr[id] ? { ...latestHr[id], created_at: day(latestHr[id].created_at) } : null,
+        },
+      ]));
+
       setPatients(list);
+      setPatientSummaries(summaries);
       setActivePatientId(activeId);
       activeRef.current = activeId;
       setData({
         patient: list.find((p) => p.id === activeId) || null,
-        caregiver: (cgs.data && cgs.data[0]) || null,
+        caregiver: null,
         medication_records: meds.data || [],
         medication_log: (logs.data || []).map((l) => ({ ...l, taken_at: dateTime(l.taken_at) })),
         notifications: notis.data || [],
@@ -113,10 +160,6 @@ export function AppProvider({ children }) {
       setLoading(false);
     }
   }, [showToast]);
-
-  useEffect(() => {
-    loadAll();
-  }, [loadAll]);
 
   // สลับผู้ป่วยที่กำลังดู
   const selectPatient = (id) => loadAll(id);
@@ -143,6 +186,76 @@ export function AppProvider({ children }) {
     setRoute({ name, params });
   }, []);
 
+  useEffect(() => {
+    let mounted = true;
+    const initAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!mounted) return;
+      const appUser = authUserToAppUser(session && session.user);
+      if (appUser) {
+        setUser(appUser);
+        userRef.current = appUser.id;
+        reset('CaregiverHome');
+      }
+      await loadAll();
+    };
+    initAuth();
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      const appUser = authUserToAppUser(session && session.user);
+      setUser(appUser);
+      userRef.current = appUser && appUser.id;
+      if (!appUser) {
+        setPatients([]);
+        setPatientSummaries({});
+        setActivePatientId(null);
+        activeRef.current = null;
+        setData(EMPTY);
+        reset('Login');
+      }
+    });
+
+    return () => {
+      mounted = false;
+      listener.subscription.unsubscribe();
+    };
+  }, [loadAll, reset]);
+
+  // ----- auth: เข้าสู่ระบบ/ออกจากระบบ (ผู้ดูแล) -----
+  const signIn = useCallback((u) => {
+    setUser(u);
+    userRef.current = u && u.id;
+    loadAll();               // โหลดผู้ป่วยของผู้ดูแลคนนี้
+  }, [loadAll]);
+
+  const signOut = useCallback(async () => {
+    await supabase.auth.signOut();
+    userRef.current = null;
+    setUser(null);
+    setPatients([]);
+    setPatientSummaries({});
+    setActivePatientId(null);
+    activeRef.current = null;
+    setData(EMPTY);
+    reset('Login');
+  }, [reset]);
+
+  const updateProfile = async (patch) => {
+    const uid = userRef.current;
+    if (!uid) return;
+    const { data: authData, error } = await supabase.auth.updateUser({
+      data: {
+        name: patch.name ?? user?.name ?? null,
+        age: patch.age ?? user?.age ?? null,
+        phone: patch.phone ?? user?.phone ?? null,
+      },
+    });
+    if (error) return showToast('บันทึกโปรไฟล์ไม่สำเร็จ: ' + error.message, 'danger');
+    const u = authUserToAppUser(authData.user);
+    if (u) setUser(u);
+    showToast('บันทึกโปรไฟล์ผู้ดูแลแล้ว', 'success');
+  };
+
   const patientId = data.patient && data.patient.id;
 
   // ----- data actions (เขียนลง Supabase แล้วอัปเดต state) -----
@@ -157,6 +270,10 @@ export function AppProvider({ children }) {
       ...d,
       blood_pressure_logs: [...d.blood_pressure_logs, { ...row, created_at: day(row.created_at) }],
     }));
+    setPatientSummaries((s) => ({
+      ...s,
+      [patientId]: { ...(s[patientId] || {}), bp: { ...row, created_at: day(row.created_at) } },
+    }));
   };
 
   const addSugar = async (level) => {
@@ -170,6 +287,10 @@ export function AppProvider({ children }) {
       ...d,
       blood_sugar_logs: [...d.blood_sugar_logs, { ...row, created_at: day(row.created_at) }],
     }));
+    setPatientSummaries((s) => ({
+      ...s,
+      [patientId]: { ...(s[patientId] || {}), sugar: { ...row, created_at: day(row.created_at) } },
+    }));
   };
 
   const addHeartRate = async (bpm) => {
@@ -182,6 +303,10 @@ export function AppProvider({ children }) {
     setData((d) => ({
       ...d,
       heart_rate_logs: [...d.heart_rate_logs, { ...row, created_at: day(row.created_at) }],
+    }));
+    setPatientSummaries((s) => ({
+      ...s,
+      [patientId]: { ...(s[patientId] || {}), hr: { ...row, created_at: day(row.created_at) } },
     }));
   };
 
@@ -248,6 +373,27 @@ export function AppProvider({ children }) {
     setData((d) => ({ ...d, notifications: [...d.notifications, row] }));
   };
 
+  // ดึงแจ้งเตือนยาของผู้ป่วย "ทุกคน" ของผู้ดูแล + ใส่ชื่อผู้ป่วยในข้อความ
+  // ใช้ตอนเปิดแจ้งเตือนจริง: หลายคนทานพร้อมกัน = แจ้งแยกทีละคน (ข้อ 7)
+  const getAllReminders = async () => {
+    const ownerId = userRef.current;
+    if (!ownerId) return [];
+    const { data: pts } = await supabase.from('patients').select('id,name').eq('owner_id', ownerId);
+    const list = pts || [];
+    if (list.length === 0) return [];
+    const ids = list.map((p) => p.id);
+    const nameById = Object.fromEntries(list.map((p) => [p.id, p.name]));
+    const { data: notis } = await supabase
+      .from('medication_notifications')
+      .select('*')
+      .in('patient_id', ids)
+      .order('time');
+    return (notis || []).map((n) => ({
+      ...n,
+      message: `${nameById[n.patient_id] || 'ผู้ป่วย'}: ${n.message || 'ทานยา'}`,
+    }));
+  };
+
   const addEmergencyContact = async (c) => {
     const { data: row, error } = await supabase
       .from('emergency_contacts')
@@ -271,7 +417,7 @@ export function AppProvider({ children }) {
   const addPatient = async (rec) => {
     const { data: row, error } = await supabase
       .from('patients')
-      .insert(rec)
+      .insert({ ...rec, owner_id: userRef.current })
       .select()
       .single();
     if (error) return showToast('เพิ่มผู้ป่วยไม่สำเร็จ: ' + error.message, 'danger');
@@ -298,8 +444,12 @@ export function AppProvider({ children }) {
     reset,
     user,
     setUser,
+    signIn,
+    signOut,
+    updateProfile,
     data,
     patients,
+    patientSummaries,
     activePatientId,
     selectPatient,
     addPatient,
@@ -313,6 +463,7 @@ export function AppProvider({ children }) {
     addMedication,
     addAppointment,
     addNotification,
+    getAllReminders,
     addEmergencyContact,
     removeItem,
     updatePatient,

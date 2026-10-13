@@ -38,6 +38,42 @@ export function speak(text) {
   }
 }
 
+// เล่นเสียงกริ่งดังๆ ผ่าน media stream (volume สูงสุด) — ดังกว่าเสียงแจ้งเตือนระบบ (ข้อ 8)
+let _Audio = null;
+function getAudio() {
+  if (_Audio !== null) return _Audio || null;
+  try {
+    _Audio = require('expo-av').Audio;
+  } catch (e) {
+    _Audio = false;
+  }
+  return _Audio || null;
+}
+
+export async function playBell() {
+  const Audio = getAudio();
+  if (!Audio) return false;
+  try {
+    await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
+    const { sound } = await Audio.Sound.createAsync(
+      require('../assets/bell.wav'),
+      { shouldPlay: true, volume: 1.0 }
+    );
+    sound.setOnPlaybackStatusUpdate((st) => {
+      if (st && st.didJustFinish) sound.unloadAsync().catch(() => {});
+    });
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+// กริ่งดังก่อน แล้วค่อยอ่านออกเสียงข้อความ
+export function speakAfterBell(text, delayMs = 1800) {
+  playBell();
+  if (text) setTimeout(() => speak(text), delayMs);
+}
+
 export async function ensurePermissions() {
   const N = getNotifications();
   if (!N) return false;
@@ -142,6 +178,6 @@ export function attachSpeechListener() {
       notif && notif.request && notif.request.content && notif.request.content.data
         ? notif.request.content.data.speak
         : null;
-    if (text) speak(text);
+    if (text) speakAfterBell(text);
   });
 }

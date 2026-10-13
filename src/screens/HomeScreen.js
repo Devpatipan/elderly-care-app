@@ -9,14 +9,14 @@ import { classifyBP, classifySugar, classifyHeartRate, localDay } from '../data'
 
 // หน้าหลักแบบ dashboard (ภาพที่ 5): ทักทาย + ความคืบหน้ายาวันนี้ + การ์ดค่าสุขภาพ + เมนู + นัดหมาย
 export default function HomeScreen() {
-  const { data, navigate, takeMed } = useApp();
+  const { data, navigate, reset, takeMed, user } = useApp();
   const { patient } = data;
-  const caregiverName = (data.caregiver && data.caregiver.name) || 'ผู้ดูแล';
+  const caregiverName = (user && user.name) || 'ผู้ดูแล';
 
   // กันแอปล่มถ้ายังไม่มีข้อมูลผู้ป่วย (เช่น โหลด DB ไม่สำเร็จ / ยังไม่ได้รัน migration)
   if (!patient) {
     return (
-      <Screen title="หน้าหลัก" showBack={false}>
+      <Screen title="หน้าหลัก" showBack={true} onBack={() => reset('CaregiverHome')}>
         <Card>
           <Text style={{ fontSize: sizes.body, color: colors.textMuted, textAlign: 'center' }}>
             ยังไม่พบข้อมูลผู้ป่วย — ดึงหน้าจอลงเพื่อรีเฟรช หรือเพิ่มข้อมูลผู้ป่วย
@@ -53,28 +53,35 @@ export default function HomeScreen() {
   const nextAppt = data.appointments[0];
 
   return (
-    <Screen title="หน้าหลัก" showBack={false}>
+    <Screen title="หน้าหลัก" showBack={true} onBack={() => reset('CaregiverHome')}>
       {/* Greeting / profile mini */}
       <Card style={styles.profile}>
         <View style={styles.avatar}>
-          <MaterialCommunityIcons name="account" size={32} color={colors.primary} />
+          <MaterialCommunityIcons name="account-heart" size={34} color={colors.primary} />
         </View>
         <View style={{ flex: 1 }}>
           <Text style={styles.hello}>สวัสดีค่ะ {caregiverName}</Text>
           <Text style={styles.pName}>{patient.name}</Text>
-          <Text style={styles.pSub}>อายุ {patient.age} ปี · {patient.congenital_disease}</Text>
+          <Text style={styles.pSub}>อายุ {patient.age} ปี · {patient.congenital_disease || '-'}</Text>
         </View>
+        <TouchableOpacity style={styles.switchBtn} onPress={() => navigate('PatientList')} activeOpacity={0.8}>
+          <MaterialCommunityIcons name="swap-horizontal" size={18} color={colors.primaryDark} />
+          <Text style={styles.switchText}>เลือก</Text>
+        </TouchableOpacity>
       </Card>
 
       {/* Today's medication progress */}
-      <Card>
+      <Card style={styles.heroCard}>
         <View style={styles.rowBetween}>
-          <Text style={styles.cardTitle}>การทานยาวันนี้</Text>
+          <View>
+            <Text style={styles.heroEyebrow}>สุขภาพดี เริ่มจากการดูแลสม่ำเสมอ</Text>
+            <Text style={styles.cardTitle}>การทานยาวันนี้</Text>
+          </View>
           <Text style={styles.progressPct}>{takenToday}/{totalMeds}</Text>
         </View>
         <ProgressBar value={pct} color={pct === 100 ? colors.success : colors.primary} />
         <Text style={styles.progressHint}>
-          {pct === 100 ? 'ครบแล้ววันนี้ 🎉' : `เหลืออีก ${remaining} รายการ`}
+          {pct === 100 ? 'ครบแล้ววันนี้' : `เหลืออีก ${remaining} รายการ`}
         </Text>
       </Card>
 
@@ -111,36 +118,40 @@ export default function HomeScreen() {
         </Card>
       )}
 
-      {/* Today's meds */}
-      <SectionTitle hint="กดยืนยันเมื่อให้ทานยาแล้ว">ยาที่ต้องทานวันนี้</SectionTitle>
-      {data.medication_records.map((m) => (
-        <Card key={m.id} style={styles.medRow}>
-          <IconCircle icon="pill" color={colors.primary} soft={colors.primarySoft} />
-          <View style={{ flex: 1, marginLeft: 12 }}>
-            <Text style={styles.medName}>{m.medication_name}</Text>
-            <Text style={styles.medSub}>{m.dosage} · {m.time_of_day}</Text>
-          </View>
-          <TouchableOpacity style={styles.takeBtn} onPress={() => takeMed(m)} activeOpacity={0.85}>
-            <Text style={styles.takeText}>ทานแล้ว</Text>
-          </TouchableOpacity>
-        </Card>
-      ))}
-
       {/* Menu */}
-      <SectionTitle>เมนูทั้งหมด</SectionTitle>
+      <SectionTitle>เมนูดูแลหลัก</SectionTitle>
       <View style={styles.grid}>
         <Tile icon="heart-pulse" label="บันทึกค่าสุขภาพ" c={colors.primary} s={colors.primarySoft} onPress={() => navigate('Health')} />
-        <Tile icon="chart-line" label="กราฟสุขภาพ" c={colors.primary} s={colors.primarySoft} onPress={() => navigate('Graph')} />
-        <Tile icon="pill" label="บันทึกการทานยา" c={colors.accent} s={colors.accentSoft} onPress={() => navigate('Medication')} />
-        <Tile icon="bell-ring" label="แจ้งเตือนยา" c={colors.warning} s={colors.warningSoft} onPress={() => navigate('Reminder')} />
+        <Tile icon="pill" label="การรักษาด้วยยา" c={colors.accent} s={colors.accentSoft} onPress={() => navigate('Medication')} />
         <Tile icon="calendar-clock" label="นัดหมายแพทย์" c={colors.primary} s={colors.primarySoft} onPress={() => navigate('Appointment')} />
+        <Tile icon="bell-ring" label="แจ้งเตือน" c={colors.primary} s={colors.primarySoft} onPress={() => navigate('NotificationInbox')} />
+        <Tile icon="chart-line" label="กราฟสุขภาพ" c={colors.primary} s={colors.primarySoft} onPress={() => navigate('Graph')} />
         <Tile icon="account" label="ข้อมูลผู้ป่วย" c={colors.primary} s={colors.primarySoft} onPress={() => navigate('PatientInfo')} />
-        <Tile icon="account-plus" label="เพิ่มผู้ป่วย" c={colors.success} s={colors.successSoft} onPress={() => navigate('AddPatient', { mode: 'new' })} />
-        <Tile icon="account-switch" label="สลับผู้ป่วย" c={colors.primary} s={colors.primarySoft} onPress={() => navigate('PatientList')} />
-        <Tile icon="account-heart" label="ข้อมูลผู้ดูแล" c={colors.primary} s={colors.primarySoft} onPress={() => navigate('Caregiver')} />
-        <Tile icon="file-chart" label="รายงานสรุป" c={colors.accent} s={colors.accentSoft} onPress={() => navigate('Report')} />
-        <Tile icon="phone" label="SOS ฉุกเฉิน" c={colors.danger} s={colors.dangerSoft} onPress={() => navigate('SOS')} />
+        <Tile icon="account-arrow-left" label="หน้าผู้ดูแล" c={colors.primary} s={colors.primarySoft} onPress={() => navigate('CaregiverHome')} />
       </View>
+
+      {/* Today's meds */}
+      <SectionTitle hint="กดยืนยันเมื่อให้ทานยาแล้ว">ยาที่ต้องทานวันนี้</SectionTitle>
+      {data.medication_records.map((m) => {
+        const taken = takenNamesToday.has(m.medication_name);
+        return (
+          <Card key={m.id} style={styles.medRow}>
+            <IconCircle icon="pill" color={taken ? colors.textTertiary : colors.primary} soft={taken ? colors.border : colors.primarySoft} />
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <Text style={styles.medName}>{m.medication_name}</Text>
+              <Text style={styles.medSub}>{m.dosage} · {m.time_of_day}</Text>
+            </View>
+            <TouchableOpacity
+              style={[styles.takeBtn, taken && styles.takeBtnDone]}
+              onPress={() => !taken && takeMed(m)}
+              activeOpacity={taken ? 1 : 0.85}
+              disabled={taken}
+            >
+              <Text style={[styles.takeText, taken && styles.takeTextDone]}>{taken ? 'ทานแล้ว' : 'กดยืนยัน'}</Text>
+            </TouchableOpacity>
+          </Card>
+        );
+      })}
 
       {/* Next appointment */}
       <SectionTitle>นัดหมายถัดไป</SectionTitle>
@@ -173,24 +184,33 @@ function Tile({ icon, label, onPress, c, s }) {
 }
 
 const styles = StyleSheet.create({
-  profile: { flexDirection: 'row', alignItems: 'center' },
+  profile: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: colors.border },
   avatar: {
-    width: 58, height: 58, borderRadius: 29, backgroundColor: colors.primarySoft,
+    width: 58, height: 58, borderRadius: 20, backgroundColor: colors.primarySoft,
     alignItems: 'center', justifyContent: 'center', marginRight: 14,
   },
   hello: { fontSize: sizes.tiny, color: colors.textMuted },
   pName: { fontSize: sizes.title, fontWeight: '900', color: colors.text },
   pSub: { fontSize: sizes.small, color: colors.textMuted, marginTop: 2 },
+  switchBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: colors.primarySoft, borderRadius: 999,
+    paddingVertical: 8, paddingHorizontal: 12,
+  },
+  switchText: { fontSize: sizes.tiny, color: colors.primaryDark, fontWeight: '800' },
 
+  heroCard: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.primaryTint2 },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  heroEyebrow: { fontSize: sizes.tiny, color: colors.primaryDark, fontWeight: '700', marginBottom: 3 },
   cardTitle: { fontSize: sizes.body, fontWeight: '800', color: colors.text },
   progressPct: { fontSize: sizes.body, fontWeight: '900', color: colors.primary },
   progressHint: { fontSize: sizes.small, color: colors.textMuted, marginTop: 8 },
 
   statRow: { flexDirection: 'row', gap: 10, marginBottom: 14, alignItems: 'stretch' },
   stat: {
-    flex: 1, backgroundColor: colors.card, borderRadius: sizes.radius, padding: 12,
+    flex: 1, backgroundColor: colors.card, borderRadius: sizes.radiusSm, padding: 12,
     alignItems: 'flex-start', minHeight: 158,
+    borderWidth: 1, borderColor: colors.border,
   },
   statLabel: { fontSize: sizes.small, color: colors.textMuted, marginTop: 10 },
   statValue: { fontSize: sizes.h2, fontWeight: '900', color: colors.text, marginVertical: 4, alignSelf: 'stretch' },
@@ -205,12 +225,15 @@ const styles = StyleSheet.create({
   medSub: { fontSize: sizes.small, color: colors.textMuted, marginTop: 3 },
   takeBtn: { backgroundColor: colors.success, borderRadius: 999, paddingHorizontal: 18, paddingVertical: 10 },
   takeText: { color: colors.white, fontWeight: '800', fontSize: sizes.small },
+  takeBtnDone: { backgroundColor: colors.border, borderWidth: 1, borderColor: '#D7DDD9' },
+  takeTextDone: { color: colors.textMuted },
 
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   tileWrap: { width: '48%', marginBottom: 12 },
   tile: {
-    backgroundColor: colors.card, borderRadius: sizes.radius,
+    backgroundColor: colors.card, borderRadius: sizes.radiusSm,
     paddingVertical: 18, paddingHorizontal: 12, alignItems: 'center',
+    borderWidth: 1, borderColor: colors.border, minHeight: 104,
   },
   tileLabel: { fontSize: sizes.small, fontWeight: '700', color: colors.text, textAlign: 'center', marginTop: 8 },
 

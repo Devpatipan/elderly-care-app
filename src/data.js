@@ -127,7 +127,7 @@ export function classifyHeartRate(bpm) {
 // ระดับน้ำตาลในเลือด (เกณฑ์ตามหัวข้อ 2.8.4)
 export function classifySugar(level) {
   const v = Number(level);
-  if (v >= 126) return { label: 'เสี่ยงเป็นเบาหวาน', level: 'danger' };
+  if (v >= 126) return { label: 'เสี่ยงน้ำตาลสูง', level: 'danger' };
   if (v >= 100) return { label: 'มีภาวะเสี่ยง', level: 'warning' };
   if (v >= 70) return { label: 'ปกติ', level: 'success' };
   return { label: 'ต่ำกว่าเกณฑ์', level: 'warning' };

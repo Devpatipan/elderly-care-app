@@ -17,6 +17,7 @@ const fmt = (v) => (v == null ? '-' : v);
 
 function Summary({ title, days, data }) {
   const cut = daysAgo(days);
+  const today = localDay();
   const bp = data.blood_pressure_logs.filter((r) => r.created_at >= cut);
   const sg = data.blood_sugar_logs.filter((r) => r.created_at >= cut);
   const hr = data.heart_rate_logs.filter((r) => r.created_at >= cut);
@@ -38,6 +39,7 @@ function Summary({ title, days, data }) {
   return (
     <>
       <SectionTitle>{title}</SectionTitle>
+      <Text style={styles.range}>ช่วงวันที่ {cut} ถึง {today}</Text>
       <Card>
         {rows.map(([k, v], i) => (
           <View key={k} style={[styles.row, i > 0 && styles.divider]}>
@@ -69,4 +71,5 @@ const styles = StyleSheet.create({
   k: { fontSize: sizes.body, color: colors.textMuted },
   v: { fontSize: sizes.body, color: colors.text, fontWeight: '700' },
   note: { fontSize: 13, color: colors.textMuted, lineHeight: 20, marginTop: 4 },
+  range: { fontSize: sizes.small, color: colors.textMuted, marginBottom: 8, marginTop: -4 },
 });

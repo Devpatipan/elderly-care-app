@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Screen from '../components/Screen';
+import TimePickerModal from '../components/TimePickerModal';
 import { Card, SectionTitle, Field, BigButton } from '../components/ui';
 import { colors, sizes } from '../theme';
 import { useApp } from '../store';
@@ -11,14 +12,14 @@ import { ensurePermissions, scheduleDailyReminders, scheduleAppointmentReminders
 export default function ReminderScreen() {
   const { data, addNotification, removeItem, showToast } = useApp();
   const [med, setMed] = useState('');
-  const [time, setTime] = useState('');
+  const [time, setTime] = useState('09:00');
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [repeat, setRepeat] = useState('ทุกวัน');
 
   const add = () => {
     if (!med || !time) return showToast('กรุณากรอกชื่อยาและเวลา', 'warning');
-    if (!/^\d{1,2}:\d{2}$/.test(time)) return showToast('เวลาต้องอยู่ในรูปแบบ HH:MM เช่น 07:30', 'warning');
     addNotification({ message: `ทาน ${med}`, time, repeat });
-    setMed(''); setTime('');
+    setMed(''); setTime('09:00');
     showToast('ตั้งการแจ้งเตือนแล้ว — กด "เปิดแจ้งเตือนทั้งหมด" เพื่อให้เด้งตามเวลา', 'success');
   };
 
@@ -66,7 +67,14 @@ export default function ReminderScreen() {
       <SectionTitle>เพิ่มการแจ้งเตือน</SectionTitle>
       <Card>
         <Field label="ชื่อยา" value={med} onChangeText={setMed} placeholder="เช่น Metformin 500mg" />
-        <Field label="เวลา (HH:MM)" value={time} onChangeText={setTime} placeholder="เช่น 07:30" />
+        <TouchableOpacity style={styles.pickerButton} onPress={() => setPickerOpen(true)} activeOpacity={0.82}>
+          <MaterialCommunityIcons name="clock-edit-outline" size={20} color={colors.primary} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.pickerTitle}>เวลาแจ้งเตือน</Text>
+            <Text style={styles.pickerSub}>แตะเพื่อเลือกชั่วโมงและนาที</Text>
+          </View>
+          <Text style={styles.pickerTime}>{time}</Text>
+        </TouchableOpacity>
         <Field label="ความถี่" value={repeat} onChangeText={setRepeat} placeholder="เช่น ทุกวัน" />
       </Card>
       <BigButton label="บันทึก" icon="content-save" onPress={add} />
@@ -80,6 +88,16 @@ export default function ReminderScreen() {
         กด "เปิด/อัปเดตแจ้งเตือนทั้งหมด" เพื่อให้แอปเด้งแจ้งเตือนทุกวันตามเวลาที่ตั้งไว้
         พร้อมอ่านข้อความออกเสียงภาษาไทย (เอกสารข้อ 3.3)
       </Text>
+
+      <TimePickerModal
+        visible={pickerOpen}
+        value={time}
+        onClose={() => setPickerOpen(false)}
+        onSelect={(nextTime) => {
+          setTime(nextTime);
+          setPickerOpen(false);
+        }}
+      />
     </Screen>
   );
 }
@@ -99,4 +117,13 @@ const styles = StyleSheet.create({
   repeat: { fontSize: 12, color: colors.textMuted },
   msg: { fontSize: sizes.body, fontWeight: '700', color: colors.text, flex: 1 },
   note: { fontSize: 13, color: colors.textMuted, marginTop: 6, lineHeight: 20 },
+  pickerButton: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    borderWidth: 1.6, borderColor: colors.primary,
+    backgroundColor: colors.primarySoft, borderRadius: 14,
+    padding: 14, marginBottom: 16,
+  },
+  pickerTitle: { fontSize: sizes.small, color: colors.primaryDark, fontWeight: '900' },
+  pickerSub: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
+  pickerTime: { fontSize: sizes.h2, color: colors.primaryDark, fontWeight: '900' },
 });

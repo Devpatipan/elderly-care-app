@@ -10,13 +10,15 @@ import {
   RefreshControl,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, sizes, shadow } from '../theme';
 import { FadeIn } from './ui';
 import { useApp } from '../store';
 
 // Shared page chrome: rounded teal header + floating bottom tab bar.
-export default function Screen({ title, children, showBack = true, showTabs = true }) {
+export default function Screen({ title, children, showBack = true, showTabs = true, onBack }) {
   const { goBack, navigate, route, reloadAll } = useApp();
+  const insets = useSafeAreaInsets();
   const [refreshing, setRefreshing] = React.useState(false);
 
   const onRefresh = React.useCallback(async () => {
@@ -30,10 +32,10 @@ export default function Screen({ title, children, showBack = true, showTabs = tr
   }, [reloadAll]);
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <View style={styles.header}>
+    <View style={styles.safe}>
+      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         {showBack ? (
-          <TouchableOpacity onPress={goBack} style={styles.backBtn} activeOpacity={0.7}>
+          <TouchableOpacity onPress={onBack || goBack} style={styles.backBtn} activeOpacity={0.7}>
             <Text style={styles.backArrow}>‹</Text>
           </TouchableOpacity>
         ) : (
@@ -47,7 +49,7 @@ export default function Screen({ title, children, showBack = true, showTabs = tr
 
       <ScrollView
         style={styles.body}
-        contentContainerStyle={styles.bodyContent}
+        contentContainerStyle={[styles.bodyContent, !showTabs && { paddingBottom: insets.bottom + 28 }]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} tintColor={colors.primary} />
@@ -58,13 +60,13 @@ export default function Screen({ title, children, showBack = true, showTabs = tr
       </ScrollView>
 
       {showTabs && (
-        <View style={styles.tabbar}>
+        <View style={[styles.tabbar, { paddingBottom: insets.bottom + 10 }]}>
           <Tab icon="home-variant" label="หน้าหลัก" active={route.name === 'Home'} onPress={() => navigate('Home')} />
           <Tab icon="account" label="ข้อมูล" active={route.name === 'PatientInfo'} onPress={() => navigate('PatientInfo')} />
           <Tab icon="phone" label="SOS" danger active={route.name === 'SOS'} onPress={() => navigate('SOS')} />
         </View>
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 

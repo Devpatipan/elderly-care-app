@@ -2,6 +2,7 @@
   "expo": {
     "name": "ดูแลผู้สูงอายุ",
     "slug": "elderly-care-app",
+    "scheme": "elderlycare",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
@@ -33,7 +34,8 @@
       "bundler": "metro"
     },
     "plugins": [
-      "expo-font"
+      "expo-font",
+      "expo-web-browser"
     ],
     "extra": {
       "eas": {

@@ -57,6 +57,16 @@ export default function HealthScreen() {
 
   return (
     <Screen title="บันทึกค่าสุขภาพ">
+      <Card style={styles.patientCard}>
+        <View style={styles.patientIcon}>
+          <Text style={styles.patientInitial}>{data.patient?.name ? data.patient.name.slice(0, 1) : 'ผ'}</Text>
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.patientName}>{data.patient?.name || 'ผู้ป่วย'}</Text>
+          <Text style={styles.patientSub}>{data.patient?.congenital_disease || 'ยังไม่มีโรคประจำตัวที่ระบุ'}</Text>
+        </View>
+      </Card>
+
       <SectionTitle>ค่าล่าสุด</SectionTitle>
       <Card>
         <View style={styles.latestRow}>
@@ -122,4 +132,12 @@ const styles = StyleSheet.create({
   latestLabel: { fontSize: sizes.body, color: colors.textMuted },
   latestRight: { alignItems: 'flex-end' },
   latestVal: { fontSize: sizes.h2, fontWeight: '800', color: colors.text, marginBottom: 4 },
+  patientCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.primarySoft, borderWidth: 1, borderColor: colors.primaryTint2 },
+  patientIcon: {
+    width: 48, height: 48, borderRadius: 16, backgroundColor: colors.card,
+    alignItems: 'center', justifyContent: 'center', marginRight: 12,
+  },
+  patientInitial: { fontSize: sizes.h2, fontWeight: '900', color: colors.primary },
+  patientName: { fontSize: sizes.body, fontWeight: '900', color: colors.text },
+  patientSub: { fontSize: sizes.small, color: colors.textMuted, marginTop: 2 },
 });
